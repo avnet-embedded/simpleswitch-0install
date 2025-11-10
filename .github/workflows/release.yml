@@ -1,0 +1,111 @@
+# SPDX-FileCopyrightText: (C) 2025 Tria Technologies GmbH
+# SPDX-License-Identifier: GPL-3.0-only
+
+---
+name: Release
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [deploy-0install]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    name: Create 0install release
+    steps:
+      - uses: actions/checkout@v5.0.0
+      - uses: actions/setup-python@v6.0.0
+        with:
+          python-version: "3.12"
+      - name: Define version
+        id: version
+        run: |
+          import os
+          import time
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+            out.write(f'version={int(time.time())}\n')
+        shell: python
+
+      - name: Install 0install
+        run: |
+          mkdir $env:GITHUB_WORKSPACE\deploy
+          mkdir $env:GITHUB_WORKSPACE\zeroinstall
+          $tmp = New-TemporaryFile | Rename-Item -NewName { $_ -replace 'tmp$', 'zip' } –PassThru
+          Invoke-WebRequest -OutFile $tmp https://get.0install.net/zero-install.zip
+          $tmp | Expand-Archive -DestinationPath $env:GITHUB_WORKSPACE\zeroinstall -Force
+          $tmp | Remove-Item
+
+      - name: Process templates
+        run: |
+          import glob
+          import os
+          import subprocess
+          from pathlib import Path
+          zeroinstall_dir=os.path.join(os.environ['GITHUB_WORKSPACE'], 'zeroinstall')
+          for item in glob.glob('templates/*.xml.template'):
+            _path = Path(item)
+            _output = os.path.join(os.environ['GITHUB_WORKSPACE'], 'deploy', _path.stem)
+            subprocess.check_call(f'zero-install.exe run 0template -o {_output} {_path.absolute()} version=${{ steps.version.outputs.version }}', shell=True, cwd=zeroinstall_dir)
+        shell: python
+
+      - name: Upload unsigned-manifests as artifact
+        uses: actions/upload-artifact@v5.0.0
+        with:
+          name: unsigned-manifests
+          path: deploy/*
+          retention-days: 1
+
+  linux-build:
+    runs-on: ubuntu-latest
+    needs: [windows-build]
+    name: Sign 0install release
+    steps:
+      - uses: actions/checkout@v5.0.0
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6.3.0
+        with:
+          gpg_private_key: ${{ secrets.GPG_KEY }}
+
+      - name: Download unsigned-manifests from artifact
+        uses: Wandalen/wretry.action/main@v3.8.0
+        with:
+          action: actions/download-artifact@v6.0.0
+          with: |
+            path: deploy/
+            pattern: unsigned-manifests
+            merge-multiple: true
+          attempt_limit: 5
+          attempt_delay: 1000
+
+      - name: sign releases
+        run: |
+          for item in deploy/*; do
+            gpg --detach-sign --output "${{ runner.temp }}/tmp.sig" "$item"
+            _hash=$(base64 "${{ runner.temp }}/tmp.sig")
+            echo '<!-- Base64 Signature' >> "$item"
+            echo "${_hash}" >> "$item"
+            echo '' >> "$item"
+            echo '-->' >> "$item"
+          done
+        shell: bash
+
+      - name: delete old release
+        run: gh release delete current --cleanup-tag || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: create release
+        uses: softprops/action-gh-release@v2.4.1
+        with:
+          body: "Latest 0install releases"
+          tag_name: "current"
+          generate_release_notes: false
+          make_latest: "true"
+          files: |
+            deploy/*
+            C0AB27F4577099A7.gpg

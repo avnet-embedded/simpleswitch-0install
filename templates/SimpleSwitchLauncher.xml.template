@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface"
+  uri="https://github.com/avnet-embedded/simpleswitch-0install/releases/download/current/SimpleSwitchLauncher.xml">
+  <name>SimpleSwitch Launcher</name>
+  <summary>Manage your SimpleSwitch device</summary>
+  <homepage>https://simple.tria-technologies.com</homepage>
+  <publisher>Tria Technologies GmbH</publisher>
+  <group license="License :: Free To Use But Restricted" arch="Windows-*">
+    <command name="run" path="simpleswitch-launcher.exe" />
+    <implementation version="{version}" stability="stable">
+      <archive
+        href="https://avnet-embedded.github.io/simpleswitch-launcher-web/installer/windows/simpleswitch-launcher.zip" />
+    </implementation>
+  </group>
+  <group license="License :: Free To Use But Restricted" arch="Linux-*">
+    <command name="run" path="simpleswitch-launcher-latest-x86_64.AppImage" />
+    <implementation version="{version}" stability="stable">
+      <file
+        href="https://avnet-embedded.github.io/simpleswitch-launcher-web/installer/linux/simpleswitch-launcher-latest-x86_64.AppImage"
+        dest="simpleswitch-launcher-latest-x86_64.AppImage" executable="true" />
+    </implementation>
+  </group>
+</interface>
