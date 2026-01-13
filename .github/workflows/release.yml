@@ -60,7 +60,7 @@ jobs:
         shell: python
 
       - name: Upload unsigned-manifests as artifact
-        uses: actions/upload-artifact@v5.0.0
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: unsigned-manifests
           path: deploy/*
@@ -82,7 +82,7 @@ jobs:
       - name: Download unsigned-manifests from artifact
         uses: Wandalen/wretry.action/main@v3.8.0
         with:
-          action: actions/download-artifact@v6.0.0
+          action: actions/download-artifact@v7.0.0
           with: |
             path: deploy/
             pattern: unsigned-manifests
