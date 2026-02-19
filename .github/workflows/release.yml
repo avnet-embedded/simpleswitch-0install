@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v5.0.1
         with:
           token: ${{ secrets.DISPATCH_PAT }}
-      - uses: actions/setup-python@v6.1.0
+      - uses: actions/setup-python@v6.2.0
         with:
           python-version: "3.12"
       - name: Define version
