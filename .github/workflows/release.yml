@@ -82,7 +82,7 @@ jobs:
       - name: Download unsigned-manifests from artifact
         uses: Wandalen/wretry.action/main@v3.8.0
         with:
-          action: actions/download-artifact@v8.0.0
+          action: actions/download-artifact@v8.0.1
           with: |
             path: deploy/
             pattern: unsigned-manifests
